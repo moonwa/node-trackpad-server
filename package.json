@@ -1,0 +1,27 @@
+{
+  "name": "trackpad-server",
+  "version": "0.0.1",
+  "description": "trackpad-server",
+  "main": "index.js",
+  "dependencies": {
+    "node-uuid": "*",
+    "async": "*",
+    "underscore": "*",
+    "xml": "*"
+  },
+  "devDependencies": {
+    "coffee-script": "~1.6.3"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/moonwa/trackpad-server.git"
+  },
+  "author": "moon.wa",
+  "license": "BSD-2-Clause",
+  "bugs": {
+    "url": "https://github.com/moonwa/trackpad-server/issues"
+  }
+}
