@@ -14,21 +14,22 @@ class ssdp extends EventEmitter
   ssdpInfo:
     address: '239.255.255.250'
     port: 1900
+    version:[1,0]
+
   ttl: 4
   timeout: 1800
   uuid: makeUuid()
-  version:[1,0]
   name: "Node-Upnp-Device-Host"
   httpInfo: {
     address: null
     port: null
   }
-  constructor: (@_device) ->
+  constructor: (@_device, address = null) ->
     throw Error "devece is required" unless _device
 
     @broadcastSocket = dgram.createSocket 'udp4', @ssdpListener
     async.parallel
-      address: (cb) => if @_device.address then cb null, @_device.address else @getNetworkIP cb
+      address: (cb) => if address then cb null, address else @getNetworkIP cb
       uuid: (cb) => cb null, @uuid
       port: (cb) =>
         @httpServer = http.createServer(@httpListener)
@@ -36,7 +37,8 @@ class ssdp extends EventEmitter
           cb err, @address().port
       (err, res) =>
         return @emit 'error', err if err?
-        @uuid =res.uuid
+        @_device.setUuid res.uuid
+        @uuid = res.uuid
         @httpInfo.address = res.address
         @httpInfo.port = res.port
         console.log "Web server listening on http://#{@httpInfo.address}:#{@httpInfo.port}"
@@ -130,7 +132,7 @@ class ssdp extends EventEmitter
       location: @makeUrl '/device/description'
       server: [
         "#{os.type()}/#{os.release()}"
-        "UPnP/#{@version.join('.')}"
+        "UPnP/#{@ssdpInfo.version.join('.')}"
         "#{@name}/1.0" ].join ' '
       usn: "uuid:#{@uuid}" +
         if @uuid is (customHeaders.nt or customHeaders.st) then ''
@@ -185,15 +187,16 @@ class ssdp extends EventEmitter
         when 'device'
           cb null, @buildDescription()
         when 'service'
-          @services[serviceType].requestHandler { action, req, id }, cb
+          service = @_device.getServiceByType(serviceType)
+          service.requestHandler { action, req, id }, cb
         else
-          cb new HttpError 404
+          cb 404
 
     handler req, (err, data, headers) =>
       if err?
         # See UDA for error details.
-        console.log "Responded with #{err.code}: #{err.message} for #{req.url}."
-        res.writeHead err.code, 'Content-Type': 'text/plain'
+        console.log "Responded with #{http.STATUS_CODES[err]}: #{err.message} for #{req.url}."
+        res.writeHead err.toString(), 'Content-Type': 'text/plain'
         res.write "#{err.code} - #{err.message}"
 
       else
@@ -213,16 +216,16 @@ class ssdp extends EventEmitter
   buildDescription: ->
     '<?xml version="1.0"?>' + xml [ { root: [
       { _attr: { xmlns: @makeNS() } }
-      { specVersion: [ { major: @upnp.version[0] }
-                       { minor: @upnp.version[1] } ] }
-      { device: [
-        { deviceType: @makeType() }
-        { friendlyName: "#{@name} @ #{os.hostname()}".substr(0, 64) }
-        { manufacturer: 'UPnP Device for Node.js' }
-        { modelName: @name.substr(0, 32) }
-        { UDN: @uuid }
-        { serviceList:
-          { service: service.buildServiceElement() } for name, service of @services
-        } ] }
+      { specVersion: [ { major: @ssdpInfo.version[0] }
+                       { minor: @ssdpInfo.version[1] } ] }
+      { device: @_device.buildDescription() }
     ] } ]
+
+  makeNS: (category, suffix = '') ->
+    category ?= if @device? then 'service' else 'device'
+    [ 'urn', ssdp.schema.domain,
+      [ category, ssdp.schema.version[0], ssdp.schema.version[1] ].join '-'
+    ].join(':') + suffix
+
+ssdp.schema = { domain: 'schemas-upnp-org', version: [1,0] }
 module.exports = ssdp

@@ -7,7 +7,8 @@
     "node-uuid": "*",
     "async": "*",
     "underscore": "*",
-    "xml": "*"
+    "xml": "*",
+    "express":"*"
   },
   "devDependencies": {
     "coffee-script": "~1.6.3"
