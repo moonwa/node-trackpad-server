@@ -7,17 +7,18 @@ class Service
   constructor: (@type, { @version }) ->
     @version = @version ? 1
 
-  @property "notificationTypes", =>
+  @property "notificationTypes",
     get: ->
       [
         {
           nt: "urn:schemas-upnp-org:service:#{@type}:#{@version}"
           usn: "uuid:#{@deviceUuid}::urn:schemas-upnp-org:service:#{@type}:#{@version}"
+          descriptionUrl: @upnp.makeDescriptionUrl @descriptionUrl
         }
       ]
 
-  @property "upnp", =>
-    set: (value) => @_upnp = value
+  @property "descriptionUrl",
+    get: -> "/service/#{@type}/description"
 
   buildServiceElement: ->
     [ { serviceType: @getUpnpType() }

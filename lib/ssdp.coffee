@@ -47,15 +47,30 @@ class ssdp extends EventEmitter
     # Wait between 0 and maxWait seconds before answering to avoid flooding
     # control points.
     answer = (address, port) =>
-      messages = (@makeSsdpMessage('ok', st: st, ext: null) for st in notificationTypes)
+      messages = for nt in @notificationTypes
+        httpMessage.unpack "ok",
+          {
+            'cache-control': "max-age=#{@timeout}"
+#            date: new Date()
+            ext: ''
+            location: nt.descriptionUrl
+            server: [
+              "#{os.type()}/#{os.release()}"
+              "UPnP/#{@version.join('.')}"
+              "#{@name}/1.0"
+            ].join ' '
+            st: nt.nt
+            usn: nt.usn
+          }
       @send messages, address, port
 
-#    respondTo = [ 'ssdp:all', 'upnp:rootdevice', @_device ]
-#    @parseRequest msg, rinfo, (err, req) ->
-#      if req.method is 'M-SEARCH' and req.st in respondTo
-#        wait = Math.floor Math.random() * (parseInt(req.mx)) * 1000
-#        # console.log "Replying to search request from #{address}:#{port} in #{w
-#        setTimeout answer, req.mx, req.address, req.port
+    nds = (nt.nt for nt in @notificationTypes)
+    respondTo = [ 'ssdp:all', 'upnp:rootdevice', nds ]
+    @parseRequest msg, rinfo, (err, req) ->
+      if req.method is 'M-SEARCH' and req.st in respondTo
+        wait = Math.floor Math.random() * (parseInt(req.mx)) * 1000
+        # console.log "Replying to search request from #{address}:#{port} in #{w
+        setTimeout answer, req.mx, req.address, req.port
 
   parseRequest: (msg, rinfo, cb) ->
     # `http.parsers` is not documented and not guaranteed to be stable.
@@ -68,18 +83,6 @@ class ssdp extends EventEmitter
       { address, port } = rinfo
       cb null, { method, mx, st, nt, nts, usn, address, port }
     parser.execute msg, 0, msg.length
-
-  makeUrl: (pathname) ->
-    url.format
-      protocol: 'http'
-      hostname: "#{@httpInfo.address}"
-      port: @httpInfo.port  #@httpPort ? @device.httpPort
-      pathname: pathname
-
-    headers = {}
-    for header of customHeaders
-      headers[header.toUpperCase()] = customHeaders[header] or defaultHeaders[header.toLowerCase()]
-    headers
 
   send: (messages, address, port) ->
     @ssdpMessages.push { messages, address, port }
@@ -101,17 +104,20 @@ class ssdp extends EventEmitter
   _multicastStatus: (status) ->
     messages = for nt in @notificationTypes
       httpMessage.unpack "notify",
+      {
         nt: nt.nt
         usn: nt.usn
         nts: "ssdp:#{status}"
         'cache-control': "max-age=#{@timeout}"
-        host: "#{@httpInfo.address}:#{@httpInfo.port}"
+        host: "#{ssdp.address}:#{ssdp.port}"
         location: nt.descriptionUrl
         server: [
           "#{os.type()}/#{os.release()}"
           "UPnP/#{@version.join('.')}"
           "#{@name}/1.0"
         ].join ' '
+      }
+
     async.forEach messages,
       (msg, cb) =>
         @broadcastSocket.send msg, 0, msg.length, ssdp.port, ssdp.address, cb
@@ -157,13 +163,6 @@ class ssdp extends EventEmitter
 
       res.end()
 
-  buildDescription: ->
-    '<?xml version="1.0"?>' + xml [ { root: [
-      { _attr: { xmlns: @makeNS() } }
-      { specVersion: [ { major: @version[0] }
-                       { minor: @version[1] } ] }
-      { device: @_device.buildDescription() }
-    ] } ]
 ssdp.schema = { domain: 'schemas-upnp-org', version: [1,0] }
 module.exports = ssdp
 
