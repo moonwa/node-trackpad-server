@@ -1,36 +1,70 @@
 os = require 'os'
 ssdp = require './ssdp'
+makeUuid = require 'node-uuid'
+
 class Device
-  constructor: (@_type, @_version = 1) ->
-    @_services = @createServices()
-    (service._name = k) for k, service of @_services
+  constructor: (@type, { @version, @services }) ->
+    @version = @version ? 1
+    @services = @services ? {}
+    for k, service of @services
+      service.name = k
+      service.device = @
 
-  _version: 1
-  _name: null
-  _services: []
-  _uuid: null
+  version: 1
+  uuid: null
 
+  registerHttpHandler: (app) ->
+#    app.get @descriptionUrl,
+
+  @property "notificationTypes",
+    get: =>
+      notificationTypes = [
+        {
+          nt: "upnp:rootdevice"
+          usn: "uuid:#{@deviceUuid}::upnp:rootdevice"
+        }
+        {
+          nt: "uuid:#{@deviceUuid}"
+          usn: "uuid:#{@deviceUuid}"
+        }
+        {
+          nt: "urn:schemas-upnp-org:device:#{@type}:@version"
+          usn: "uuid:#{@deviceUuid}::urn:schemas-upnp-org:device:#{@type}:@version"
+        }
+      ]
+      for k, service of @services
+        notificationTypes = notificationTypes.concat service.notificationTypes
+      notificationTypes
+
+  @property "descriptionUrl", =>
+    get: -> "/device/#{@type}/description"
+
+  @property "deviceUuid",
+    get: => (@parentDevice ? {uuid: @uuid}).uuid
+
+  @property "upnp",
+    set: (value) =>
+      @_upnp = value
+      (service.upnp = value) for k, service of @services
+
+  getServices: -> v for k, v of @services
   setUuid: (@_uuid) ->
   getServiceByType: (serviceType) ->
     service = null
-    (service = v) for k, v of @_services when v.getServiceType() == serviceType
+    (service = v) for k, v of @services when v.getServiceType() == serviceType
     service
   buildDescription: ->
     [
       { deviceType: @getUpnpType() }
-      { friendlyName: "#{@name} @ #{os.hostname()}".substr(0, 64) }
+      { friendlyName: "#{@type} @ #{os.hostname()}".substr(0, 64) }
       { manufacturer: 'UPnP Device for Node.js' }
-      { modelName: @_type.substr(0, 32) }
-      { UDN: "uuid:#{@_uuid}" }
+      { modelName: @type.substr(0, 32) }
+      { modelNumber: "1.1" }
+      { serialNumber: "{881B2E0B-09C9-4B01-8C81-2E41B15188C2}" }
+      { UDN: "uuid:#{@uuid}" }
       { serviceList:
-        ({ service: service.buildServiceElement() }) for name, service of @_services
+        ({ service: service.buildServiceElement() }) for name, service of @services
       }
     ]
-  getUpnpType: ->
-    return [ 'urn',
-             ssdp.schema.domain,
-             'device',
-             @_type,
-             @_version
-    ].join( ':')
+
 module.exports = Device

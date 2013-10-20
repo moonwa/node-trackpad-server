@@ -1,21 +1,32 @@
 ssdp = require './ssdp'
 fs = require 'fs'
 class Service
-  _version: 1
-  _type: null
+  version: 1
+  type: null
 
-  constructor: (@_type, @_version = 1) ->
+  constructor: (@type, { @version }) ->
+    @version = @version ? 1
 
-  getServiceType: -> @_type;
+  @property "notificationTypes", =>
+    get: ->
+      [
+        {
+          nt: "urn:schemas-upnp-org:service:#{@type}:#{@version}"
+          usn: "uuid:#{@deviceUuid}::urn:schemas-upnp-org:service:#{@type}:#{@version}"
+        }
+      ]
+
+  @property "upnp", =>
+    set: (value) => @_upnp = value
 
   buildServiceElement: ->
     [ { serviceType: @getUpnpType() }
-      { eventSubURL: "/service/#{@_type}/event" }
-      { controlURL: "/service/#{@_type}/control" }
-      { SCPDURL: "/service/#{@_type}/description" }
+      { eventSubURL: "/service/#{@type}/event" }
+      { controlURL: "/service/#{@type}/control" }
+      { SCPDURL: "/service/#{@type}/description" }
       { serviceId: "urn:upnp-org:serviceId:#{@_name}" } ]
 
-  requestHandler: (args, cb) ->
+  requestHandler: (args, cb) =>
     { action, req } = args
     { method } = req
 
@@ -68,8 +79,8 @@ class Service
     return [ 'urn',
              ssdp.schema.domain,
              'service',
-             @_type,
-             @_version
+             @type,
+             @version
     ].join( ':')
 
 module.exports = Service
