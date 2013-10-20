@@ -18,14 +18,25 @@ class Service
       ]
 
   @property "descriptionUrl",
-    get: -> "/service/#{@type}/description"
+    get: -> "/service/#{@type}/desc"
 
   buildServiceElement: ->
     [ { serviceType: @getUpnpType() }
       { eventSubURL: "/service/#{@type}/event" }
       { controlURL: "/service/#{@type}/control" }
-      { SCPDURL: "/service/#{@type}/description" }
-      { serviceId: "urn:upnp-org:serviceId:#{@_name}" } ]
+      { SCPDURL: "#{@descriptionUrl}" }
+      { serviceId: "urn:upnp-org:serviceId:#{@name}" } ]
+
+  registerHttpHandler: (app) ->
+    console.log @descriptionUrl
+
+    app.get @descriptionUrl, (req, res, next) =>
+      console.log "request #{@descriptionUrl}"
+      # Service descriptions are static files.
+      fs.readFile "#{@serviceDescription}", 'utf8', (err, content) =>
+        res.set 'Content-Type', 'text/xml; charset="utf-8"'
+        res.send content
+        console.log content
 
   requestHandler: (args, cb) =>
     { action, req } = args

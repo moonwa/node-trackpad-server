@@ -17,7 +17,10 @@ class Device
 
   registerHttpHandler: (app) ->
     console.log @descriptionUrl
+    service.registerHttpHandler app for k, service of @services
+
     app.get @descriptionUrl, (req, res, next) =>
+      console.log "request #{@descriptionUrl}"
       data = '<?xml version="1.0"?>' + xml [
         {
           root: [
@@ -29,10 +32,9 @@ class Device
             { device: @buildDescription() }
           ]
         } ]
-      res.set {
-        'Content-Type', 'text/xml; charset="utf-8"'
-      }
-      res.end data
+
+      res.set 'Content-Type', 'text/xml; charset="utf-8"'
+      res.send data
 
   @property "notificationTypes",
     get: ->
@@ -48,8 +50,8 @@ class Device
           descriptionUrl: @upnp.makeDescriptionUrl @descriptionUrl
         }
         {
-          nt: "urn:schemas-upnp-org:device:#{@type}:@version"
-          usn: "uuid:#{@deviceUuid}::urn:schemas-upnp-org:device:#{@type}:@version"
+          nt: "urn:schemas-upnp-org:device:#{@type}:#{@version}"
+          usn: "uuid:#{@deviceUuid}::urn:schemas-upnp-org:device:#{@type}:#{@version}"
           descriptionUrl: @upnp.makeDescriptionUrl @descriptionUrl
         }
       ]
@@ -71,14 +73,14 @@ class Device
     get: -> @_upnp
 
   getServices: -> v for k, v of @services
-  setUuid: (@_uuid) ->
+
   getServiceByType: (serviceType) ->
     service = null
     (service = v) for k, v of @services when v.getServiceType() == serviceType
     service
   buildDescription: ->
     [
-      { deviceType: "urn:schemas-upnp-org:device:#{@type}:@version" }
+      { deviceType: "urn:schemas-upnp-org:device:#{@type}:#{@version}" }
       { friendlyName: "#{@type} : #{os.hostname()}".substr(0, 64) }
       { manufacturer: 'UPnP Device for Node.js' }
       { modelName: @type.substr(0, 32) }

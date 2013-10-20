@@ -16,7 +16,7 @@ class ssdp extends EventEmitter
   ssdp.port = 1900 
   ttl: 4
   timeout: 1800
-  name: "Node-Upnp-Device-Host"
+  name: "UPnP-Device-Host"
   httpInfo: {
     address: null
     port: null
