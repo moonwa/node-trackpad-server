@@ -8,7 +8,8 @@
     "async": "*",
     "underscore": "*",
     "xml": "*",
-    "express":"*"
+    "express":"*",
+    "express-soap2json":"*"
   },
   "devDependencies": {
     "coffee-script": "~1.6.3"
