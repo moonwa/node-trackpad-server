@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<scpd xmlns="urn:schemas-upnp-org:service-1-0">
+  <specVersion>
+    <major>1</major>
+    <minor>0</minor>
+  </specVersion>
+  <serviceStateTable>
+    <stateVariable sendEvents="yes">
+      <name>PointX</name>
+      <dataType>i4</dataType>
+      <defaultValue>0</defaultValue>
+    </stateVariable>
+    <stateVariable sendEvents="yes">
+        <name>PointY</name>
+        <dataType>i4</dataType>
+        <defaultValue>0</defaultValue>
+    </stateVariable>
+  </serviceStateTable>
+  <actionList>
+    <action>
+    <name>Move</name>
+      <argumentList>
+        <argument>
+          <name>OffsetX</name>
+          <direction>in</direction>
+          <relatedStateVariable>PointX</relatedStateVariable>
+        </argument>
+          <argument>
+              <name>OffsetY</name>
+              <direction>in</direction>
+              <relatedStateVariable>PointY</relatedStateVariable>
+          </argument>
+      </argumentList>
+    </action>
+  </actionList>
+</scpd>

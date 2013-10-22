@@ -28,8 +28,6 @@ class Service
       { serviceId: "urn:upnp-org:serviceId:#{@name}" } ]
 
   registerHttpHandler: (app) ->
-    console.log @descriptionUrl
-
     app.get @descriptionUrl, (req, res, next) =>
       console.log "request #{@descriptionUrl}"
       # Service descriptions are static files.
@@ -37,6 +35,9 @@ class Service
         res.set 'Content-Type', 'text/xml; charset="utf-8"'
         res.send content
         console.log content
+
+    app.post "/service/#{@type}/control", (req, res, next) =>
+      res.send "not found"
 
   requestHandler: (args, cb) =>
     { action, req } = args

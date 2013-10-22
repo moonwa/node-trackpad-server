@@ -16,9 +16,9 @@ class MyDevice extends Device
 class RemoteMouseService extends Service
   constructor:  ->
     super('RemoteMouse', {version: 1})
-  serviceDescription: "#{__dirname}/MyService.xml"
+  serviceDescription: "#{__dirname}/RemoteMouse.xml"
 
-ssdpServer = new upnp.Upnp(new MyDevice(), {address: "192.168.10.101"});
+ssdpServer = new upnp.Upnp(new MyDevice(), {address: "192.168.10.102"});
 ssdpServer.on "error", (err) ->
   console.log err
 ssdpServer.start();
