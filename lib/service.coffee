@@ -1,5 +1,7 @@
 ssdp = require './ssdp'
 fs = require 'fs'
+soap2json = require "./soap2json"
+
 class Service
   version: 1
   type: null
@@ -34,10 +36,8 @@ class Service
       fs.readFile "#{@serviceDescription}", 'utf8', (err, content) =>
         res.set 'Content-Type', 'text/xml; charset="utf-8"'
         res.send content
-        console.log content
 
-    app.post "/service/#{@type}/control", (req, res, next) =>
-      res.send "not found"
+    soap2json(app, "/service/#{@type}/control", this, "urn:schemas-upnp-org:service:#{@type}:#{@version}")
 
   requestHandler: (args, cb) =>
     { action, req } = args

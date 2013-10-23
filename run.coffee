@@ -18,6 +18,30 @@ class RemoteMouseService extends Service
     super('RemoteMouse', {version: 1})
   serviceDescription: "#{__dirname}/RemoteMouse.xml"
 
+  Move: (options, next) ->
+    console.log "move invoked"
+    console.log options.OffsetX[0]
+    ffi  = require 'ffi'
+    ref = require 'ref'
+    struct = require 'ref-struct'
+
+    Point = struct {
+      'X': 'long'
+      'Y': 'long'
+    }
+
+    PointPtr= ref.refType(Point);
+    user32 = ffi.Library 'user32',
+      'SetCursorPos': [ 'int', [ 'int', 'int' ] ]
+      'GetCursorPos': [ 'int', [ PointPtr ] ]
+    point = new Point()
+    user32.GetCursorPos point.ref()
+    console.log point.X
+    console.log point.Y
+    user32.SetCursorPos point.X + parseInt(options.OffsetX[0]), point.Y + parseInt(options.OffsetY[0])
+    next null, {}
+
+
 ssdpServer = new upnp.Upnp(new MyDevice(), {address: "192.168.10.102"});
 ssdpServer.on "error", (err) ->
   console.log err

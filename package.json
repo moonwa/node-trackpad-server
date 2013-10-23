@@ -9,7 +9,10 @@
     "underscore": "*",
     "xml": "*",
     "express":"*",
-    "express-soap2json":"*"
+    "ffi":"*",
+    "ref-struct":"*",
+    "ref":"*",
+    "xml2js":"*"
   },
   "devDependencies": {
     "coffee-script": "~1.6.3"

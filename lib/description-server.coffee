@@ -6,6 +6,7 @@ class DescriptionServer
 
   start: (cb) ->
     @app = express()
+    @app.use express.bodyParser()
     @app.use @app.router
 
     @device.registerHttpHandler @app
