@@ -42,7 +42,7 @@ class RemoteMouseService extends Service
     next null, {}
 
 
-ssdpServer = new upnp.Upnp(new MyDevice(), {address: "192.168.10.102"});
+ssdpServer = new upnp.Upnp(new MyDevice(), {address: "192.168.10.101"});
 ssdpServer.on "error", (err) ->
   console.log err
 ssdpServer.start();
