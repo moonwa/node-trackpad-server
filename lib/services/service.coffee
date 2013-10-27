@@ -1,6 +1,6 @@
-ssdp = require './ssdp'
+ssdp = require './../ssdp'
 fs = require 'fs'
-soap2json = require "./soap2json"
+soap2json = require "./../soap2json"
 
 class Service
   version: 1

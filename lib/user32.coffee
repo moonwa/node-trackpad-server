@@ -7,7 +7,6 @@ Point = struct {
   'Y': 'long'
 }
 PointPtr= ref.refType(Point)
-PointPtr= ref.refType(Point)
 MouseInput = struct {
   'type': 'int'
   'dx': 'long'
@@ -18,19 +17,26 @@ MouseInput = struct {
   'dwExtraInfo': 'int'
 }
 MouseInputPtr = ref.refType(MouseInput)
-KeyBdInput = struct {
-  'type': 'int'
-  'wVk' : 'int16'
-  'wScan': 'int16'
-  'dwFlags': 'int'
-  'time': 'int'
-  'dwExtraInfo': 'long'
-  'placeholder': 'int64'
+ScrollInfo = struct {
+  'cbSize': 'uint'
+  'fMask': 'uint'
+  'nMin': 'int'
+  'nMax': 'int'
+  'nPage': 'uint'
+  'nPos': 'int'
+  'nTrackPos': 'int'
 }
-KeyBdInputPtr = ref.refType(KeyBdInput)
+
+ScrollInfoPtr= ref.refType(ScrollInfo)
+
 #console.log Object.keys (ref.sizeof)
 #console.log Object.keys (ffi)
 user32 = ffi.Library 'user32',
+  'GetScrollInfo': [ 'int', [ 'int', 'int', ScrollInfoPtr ] ]
+  'SetScrollInfo': [ 'int', [ 'int', 'int', ScrollInfoPtr, 'int' ] ]
+  'GetActiveWindow': [ 'int', [ ] ]
+  'GetForegroundWindow': [ 'int', [ ] ]
+  'GetFocus': [ 'int', [ ] ]
   'SetCursorPos': [ 'int', [ 'int', 'int' ] ]
   'GetCursorPos': [ 'int', [ PointPtr ] ]
   'SendInput': [ 'int', [ 'uint', MouseInputPtr, 'int' ] ]
@@ -40,5 +46,5 @@ module.exports.Point = Point
 module.exports.PointPtr = PointPtr
 module.exports.MouseInput = MouseInput
 module.exports.MouseInputPtr = MouseInputPtr
-module.exports.KeyBdInput = KeyBdInput
-module.exports.KeyBdInputPtr = KeyBdInputPtr
+module.exports.ScrollInfo = ScrollInfo
+module.exports.ScrollInfoPtr = ScrollInfoPtr

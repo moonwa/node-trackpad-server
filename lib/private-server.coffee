@@ -1,6 +1,7 @@
 dgram = require 'dgram'
+async = require 'async'
 class PrivateServer
-  constructor: ->
+  constructor: (@port) ->
     @services = {}
     @
 
@@ -18,10 +19,21 @@ class PrivateServer
         services[options.service][options.action]  options, () ->
 
     self = @
-    @socket.bind (err) ->
-      unless err?
-        self.port = @address().port
-        console.log "private server listen on #{self.port}"
-      cb && cb err, self.port
+    async.series [
+      (cb) =>
+        if @port
+          @socket.bind @port, (err) ->
+            unless err?
+              self.port = @address().port
+              console.log "private server listen on #{self.port}"
+            cb && cb err, self.port
+        else
+          @socket.bind (err) ->
+            unless err?
+              self.port = @address().port
+              console.log "private server listen on #{self.port}"
+            cb && cb err, self.port
+    ], (error) ->
+
 
 module.exports = PrivateServer

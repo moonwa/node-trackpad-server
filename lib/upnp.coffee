@@ -8,12 +8,12 @@ express = require 'express'
 
 
 class Upnp extends EventEmitter
-  constructor: (@device) ->
+  constructor: (@device, @port) ->
     @device.upnp = @
     @
 
   start: ->
-      @descriptionServer = new descriptionServer @device
+      @descriptionServer = new descriptionServer @device, @port
       @descriptionServer.start (err, port) =>
         return @emit 'error', err if err?
 
