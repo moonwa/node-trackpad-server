@@ -16,7 +16,6 @@ class Device
   uuid: null
 
   registerHttpHandler: (app) ->
-    console.log @descriptionUrl
     service.registerHttpHandler app for k, service of @services
 
     app.get @descriptionUrl, (req, res, next) =>
@@ -36,29 +35,29 @@ class Device
       res.set 'Content-Type', 'text/xml; charset="utf-8"'
       res.send data
 
-  @property "notificationTypes",
-    get: ->
-      notificationTypes = [
-        {
-          nt: "upnp:rootdevice"
-          usn: "uuid:#{@deviceUuid}::upnp:rootdevice"
-          descriptionUrl: @upnp.makeDescriptionUrl @descriptionUrl
-        }
-        {
-          nt: "uuid:#{@deviceUuid}"
-          usn: "uuid:#{@deviceUuid}"
-          descriptionUrl: @upnp.makeDescriptionUrl @descriptionUrl
-        }
-        {
-          nt: "urn:schemas-upnp-org:device:#{@type}:#{@version}"
-          usn: "uuid:#{@deviceUuid}::urn:schemas-upnp-org:device:#{@type}:#{@version}"
-          descriptionUrl: @upnp.makeDescriptionUrl @descriptionUrl
-        }
-      ]
-      for k, service of @services
-        notificationTypes = notificationTypes.concat service.notificationTypes
-      nt.descriptionUrl = @upnp.makeDescriptionUrl @descriptionUrl for nt in notificationTypes
-      notificationTypes
+  getNotificationTypes: (ipaddress) ->
+    throw new Error "222" unless ipaddress?
+    notificationTypes = [
+      {
+        nt: "upnp:rootdevice"
+        usn: "uuid:#{@deviceUuid}::upnp:rootdevice"
+        descriptionUrl: @upnp.makeDescriptionUrl ipaddress, @descriptionUrl
+      }
+      {
+        nt: "uuid:#{@deviceUuid}"
+        usn: "uuid:#{@deviceUuid}"
+        descriptionUrl: @upnp.makeDescriptionUrl ipaddress, @descriptionUrl
+      }
+      {
+        nt: "urn:schemas-upnp-org:device:#{@type}:#{@version}"
+        usn: "uuid:#{@deviceUuid}::urn:schemas-upnp-org:device:#{@type}:#{@version}"
+        descriptionUrl: @upnp.makeDescriptionUrl ipaddress, @descriptionUrl
+      }
+    ]
+    for k, service of @services
+      notificationTypes = notificationTypes.concat service.getNotificationTypes ipaddress
+    nt.descriptionUrl = @upnp.makeDescriptionUrl ipaddress, @descriptionUrl for nt in notificationTypes
+    notificationTypes
 
   @property "descriptionUrl",
     get: -> "/device/#{@type}/description".toLowerCase()

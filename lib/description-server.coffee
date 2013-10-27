@@ -2,7 +2,7 @@ express = require 'express'
 http = require 'http'
 url = require 'url'
 class DescriptionServer
-  constructor: (@device, { @address }) ->
+  constructor: (@device) ->
 
   start: (cb) ->
     @app = express()
@@ -13,16 +13,16 @@ class DescriptionServer
 
     httpServer = http.createServer  @app
     self = @
-    httpServer.listen 3000, (err) ->
+    httpServer.listen (err) ->
       unless err?
         self.port = @address().port
-        console.log "Web server listening on http://#{self.address}:#{self.port}"
+        console.log "Web server listening on port #{self.port}"
       cb err, self.port
 
-  makeDescriptionUrl: (relativeUrl) ->
+  makeDescriptionUrl: (ipaddress, relativeUrl) ->
     url.format
       protocol: 'http'
-      hostname: @address
+      hostname: ipaddress
       port: @port
       pathname: relativeUrl
 

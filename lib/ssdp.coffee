@@ -1,3 +1,4 @@
+utils = require './utils'
 dgram = require 'dgram'
 url = require 'url'
 os = require 'os'
@@ -21,9 +22,11 @@ class ssdp extends EventEmitter
     address: null
     port: null
   }
+  ###
+    @param notificationTypes: {ip, [notification type list]}
+  ###
   constructor: (@notificationTypes) ->
     throw Error "notificationTypes is required" unless @notificationTypes
-
 
   start: ->
     @broadcastSocket = dgram.createSocket 'udp4', @ssdpListener
@@ -44,33 +47,36 @@ class ssdp extends EventEmitter
     iamlive()
 
   ssdpListener: (msg, rinfo)=>
-    # Wait between 0 and maxWait seconds before answering to avoid flooding
-    # control points.
-    answer = (address, port) =>
-      messages = for nt in @notificationTypes
-        httpMessage.unpack "ok",
-          {
-            'cache-control': "max-age=#{@timeout}"
-#            date: new Date()
-            ext: ''
-            location: nt.descriptionUrl
-            server: [
-              "#{os.type()}/#{os.release()}"
-              "UPnP/#{@version.join('.')}"
-              "#{@name}/1.0"
-            ].join ' '
-            st: nt.nt
-            usn: nt.usn
-          }
-      @send messages, address, port
+    utils.getIdealNetworkIP rinfo.address, (error, ipaddress) =>
+      return console.log err if error
+      notificationTypes = @notificationTypes[ipaddress]
+      # Wait between 0 and maxWait seconds before answering to avoid flooding
+      # control points.
+      answer = (address, port) =>
+        messages = for nt in notificationTypes
+          httpMessage.unpack "ok",
+            {
+              'cache-control': "max-age=#{@timeout}"
+  #            date: new Date()
+              ext: ''
+              location: nt.descriptionUrl
+              server: [
+                "#{os.type()}/#{os.release()}"
+                "UPnP/#{@version.join('.')}"
+                "#{@name}/1.0"
+              ].join ' '
+              st: nt.nt
+              usn: nt.usn
+            }
+        @send messages, address, port
 
-    nds = (nt.nt for nt in @notificationTypes)
-    respondTo = [ 'ssdp:all', 'upnp:rootdevice', nds ]
-    @parseRequest msg, rinfo, (err, req) ->
-      if req.method is 'M-SEARCH' and req.st in respondTo
-        wait = Math.floor Math.random() * (parseInt(req.mx)) * 1000
-        # console.log "Replying to search request from #{address}:#{port} in #{w
-        setTimeout answer, req.mx, req.address, req.port
+      nds = (nt.nt for nt in notificationTypes)
+      respondTo = [ 'ssdp:all', 'upnp:rootdevice', nds ]
+      @parseRequest msg, rinfo, (err, req) ->
+        if req.method is 'M-SEARCH' and req.st in respondTo
+          wait = Math.floor Math.random() * (parseInt(req.mx)) * 1000
+          # console.log "Replying to search request from #{address}:#{port} in #{w
+          setTimeout answer, req.mx, req.address, req.port
 
   parseRequest: (msg, rinfo, cb) ->
     # `http.parsers` is not documented and not guaranteed to be stable.
@@ -102,81 +108,30 @@ class ssdp extends EventEmitter
 
 
   _multicastStatus: (status) ->
-    messages = for nt in @notificationTypes
-      httpMessage.unpack "notify",
-      {
-        nt: nt.nt
-        usn: nt.usn
-        nts: "ssdp:#{status}"
-        'cache-control': "max-age=#{@timeout}"
-        host: "#{ssdp.address}:#{ssdp.port}"
-        location: nt.descriptionUrl
-        server: [
-          "#{os.type()}/#{os.release()}"
-          "UPnP/#{@version.join('.')}"
-          "#{@name}/1.0"
-        ].join ' '
-      }
+    # get first notificationTypes
+    for k, notificationTypes of @notificationTypes
+      messages = for nt in notificationTypes
+        httpMessage.unpack "notify",
+        {
+          nt: nt.nt
+          usn: nt.usn
+          nts: "ssdp:#{status}"
+          'cache-control': "max-age=#{@timeout}"
+          host: "#{ssdp.address}:#{ssdp.port}"
+          location: nt.descriptionUrl
+          server: [
+            "#{os.type()}/#{os.release()}"
+            "UPnP/#{@version.join('.')}"
+            "#{@name}/1.0"
+          ].join ' '
+        }
 
-    async.forEach messages,
-      (msg, cb) =>
-        @broadcastSocket.send msg, 0, msg.length, ssdp.port, ssdp.address, cb
-      (err) -> console.log err if err?
+      async.forEach messages,
+        (msg, cb) =>
+          @broadcastSocket.send msg, 0, msg.length, ssdp.port, ssdp.address, cb
+        (err) -> console.log err if err?
 
 
-  # HTTP request listener
-  httpListener: (req, res) =>
-    # console.log "#{req.url} requested by #{req.headers['user-agent']} at #{req.client.remoteAddress}."
-
-    # HTTP request handler.
-    handler = (req, cb) =>
-      # URLs are like `/device|service/action/[serviceType]`.
-      [category, serviceType, action, id] = req.url.split('/')[1..]
-
-      switch category
-        when 'device'
-          cb null, @buildDescription()
-        when 'service'
-#          service = @_device.getServiceByType(serviceType)
-#          service.requestHandler { action, req, id }, cb
-        else
-          cb 404
-
-    handler req, (err, data, headers) =>
-      if err?
-        # See UDA for error details.
-        console.log "Responded with #{http.STATUS_CODES[err]}: #{err.message} for #{req.url}."
-        res.writeHead err.toString(), 'Content-Type': 'text/plain'
-        res.write "#{err.code} - #{err.message}"
-
-      else
-        # Make a header object for response.
-        # `null` means use `makeHeaders` function's default value.
-        headers ?= {}
-        headers['server'] ?= null
-        if data?
-          headers['Content-Type'] ?= null
-          headers['Content-Length'] ?= Buffer.byteLength(data)
-
-        res.writeHead 200, @makeHeaders headers
-        res.write data if data?
-
-      res.end()
 
 ssdp.schema = { domain: 'schemas-upnp-org', version: [1,0] }
 module.exports = ssdp
-
-# If key exists in `customHeaders` but is `null`, use these defaults.
-#defaultHeaders =
-#  'cache-control': "max-age=#{@timeout}"
-#  'content-type': 'text/xml; charset="utf-8"'
-#  ext: ''
-#  host: "#{@httpInfo.address}:#{@httpInfo.port}"
-#  location: @makeUrl '/device/description'
-#  server: [
-#    "#{os.type()}/#{os.release()}"
-#    "UPnP/#{@version.join('.')}"
-#    "#{@name}/1.0" ].join ' '
-#  usn: "uuid:#{@uuid}" +
-#  if @uuid is (customHeaders.nt or customHeaders.st) then ''
-#  else '::' + (customHeaders.nt or customHeaders.st)

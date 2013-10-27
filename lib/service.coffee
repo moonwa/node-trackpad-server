@@ -9,15 +9,14 @@ class Service
   constructor: (@type, { @version }) ->
     @version = @version ? 1
 
-  @property "notificationTypes",
-    get: ->
-      [
-        {
-          nt: "urn:schemas-upnp-org:service:#{@type}:#{@version}"
-          usn: "uuid:#{@deviceUuid}::urn:schemas-upnp-org:service:#{@type}:#{@version}"
-          descriptionUrl: @upnp.makeDescriptionUrl @descriptionUrl
-        }
-      ]
+  getNotificationTypes: (ipaddress) ->
+    [
+      {
+        nt: "urn:schemas-upnp-org:service:#{@type}:#{@version}"
+        usn: "uuid:#{@deviceUuid}::urn:schemas-upnp-org:service:#{@type}:#{@version}"
+        descriptionUrl: @upnp.makeDescriptionUrl ipaddress, @descriptionUrl
+      }
+    ]
 
   @property "descriptionUrl",
     get: -> "/service/#{@type}/desc"
@@ -31,7 +30,6 @@ class Service
 
   registerHttpHandler: (app) ->
     app.get @descriptionUrl, (req, res, next) =>
-      console.log "request #{@descriptionUrl}"
       # Service descriptions are static files.
       fs.readFile "#{@serviceDescription}", 'utf8', (err, content) =>
         res.set 'Content-Type', 'text/xml; charset="utf-8"'

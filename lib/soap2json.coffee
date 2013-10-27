@@ -11,7 +11,6 @@ _.mixin objectToArray: (obj, arr = []) ->
   arr
 
 module.exports = (app, url, service, ns) ->
-  console.log "regisster service '#{url}'"
   app.post url, (req, res, next) =>
     data = ''
     req.setEncoding 'utf8'
@@ -20,11 +19,9 @@ module.exports = (app, url, service, ns) ->
 
     req.on 'end', =>
       serviceAction = /:\d#(\w+)"$/.exec(req.headers.soapaction)?[1]
-      console.log "invoke action #{serviceAction}"
       return next null unless service[serviceAction]
-      console.log data
       (new XmlParser).parseString data, (err, data) =>
-        service[serviceAction] data['s:Envelope']['s:Body'][0]["u:#{serviceAction}"][0], (err, data) =>
+        service[serviceAction] req, data['s:Envelope']['s:Body'][0]["u:#{serviceAction}"][0], (err, data) =>
           return next err if err
           # Create an action element.
           (body={})["u:#{serviceAction}Response"] = _.objectToArray data,
@@ -36,5 +33,4 @@ module.exports = (app, url, service, ns) ->
               's:encodingStyle': 'http://schemas.xmlsoap.org/soap/encoding/' } }
             { 's:Body': [ body ] }
           ] ]
-          console.log "result = #{result}"
           res.send result
