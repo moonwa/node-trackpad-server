@@ -1,6 +1,6 @@
 {
   "name": "trackpad-server",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "trackpad-server",
   "main": "index.js",
   "dependencies": {
@@ -10,6 +10,7 @@
     "xml": "*",
     "express":"*",
     "ffi":"*",
+    "coffee-script":"*",
     "ref-struct":"*",
     "ref":"*",
     "xml2js":"*"
